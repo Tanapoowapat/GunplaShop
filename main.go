@@ -1,10 +1,10 @@
 package main
 
 import (
-	"fmt"
 	"os"
 
 	"github.com/Tanapoowapat/GunplaShop/config"
+	"github.com/Tanapoowapat/GunplaShop/modules/servers"
 	"github.com/Tanapoowapat/GunplaShop/pkg/database"
 )
 
@@ -23,6 +23,6 @@ func main() {
 	db := database.DbConnect(cfg.Db())
 	defer db.Close()
 
-	fmt.Println(db)
+	servers.NewServer(cfg, db).Start()
 
 }
