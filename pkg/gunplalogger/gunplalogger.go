@@ -76,7 +76,7 @@ func (l *gunplaLogger) SetBody(c *fiber.Ctx) {
 	}
 	switch l.Path {
 	case "v1/users/signup":
-		l.Body = "never gonna give you up"
+		l.Body = "sensitive data..."
 	default:
 		l.Body = body
 	}

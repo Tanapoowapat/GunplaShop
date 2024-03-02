@@ -5,11 +5,15 @@ import (
 	"github.com/Tanapoowapat/GunplaShop/modules/middlewares/middlewaresRepositories"
 	"github.com/Tanapoowapat/GunplaShop/modules/middlewares/middlewaresUsecase"
 	monitorhandlers "github.com/Tanapoowapat/GunplaShop/modules/monitor/monitorHandlers"
+	"github.com/Tanapoowapat/GunplaShop/modules/users/usersHandlers"
+	"github.com/Tanapoowapat/GunplaShop/modules/users/usersRepositories"
+	"github.com/Tanapoowapat/GunplaShop/modules/users/usersUsecase"
 	"github.com/gofiber/fiber/v2"
 )
 
 type IModuleFactory interface {
 	MonitorModule()
+	UserMoudle()
 }
 
 type moduleFactory struct {
@@ -31,6 +35,25 @@ func NewMiddlewares(s *server) middlewaresHandlers.IMiddlewaresHandlers {
 	usecase := middlewaresUsecase.NewMiddlewaresUsecase(repo)
 	return middlewaresHandlers.NewMiddlewaresHandlers(s.cfg, usecase)
 
+}
+
+func (m *moduleFactory) UserMoudle() {
+	repo := usersRepositories.UsersRepositories(m.server.db)
+	usecase := usersUsecase.UsersUsecase(m.server.cfg, repo)
+	handlers := usersHandlers.NewUsersHandlers(m.server.cfg, usecase)
+
+	router := m.router.Group("/users")
+
+	//Post
+	router.Post("/signup", handlers.SignUpCustomer)
+	router.Post("/signin", handlers.SignIn)
+	router.Post("/signout", handlers.SignOut)
+	router.Post("/refresh", handlers.RefreshPassport)
+	router.Post("/signup-admin", handlers.SignUpAdmin)
+
+	//Get
+	router.Get("/:userId", m.mid.JwtAuth(), m.mid.ParamsCheck(), handlers.GetUserProfile)
+	router.Get("/admin/secret", m.mid.JwtAuth(), m.mid.Authorization(2), handlers.GenaerateAdminToken)
 }
 
 func (mf *moduleFactory) MonitorModule() {
