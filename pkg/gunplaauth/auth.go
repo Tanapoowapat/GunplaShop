@@ -32,16 +32,28 @@ func JwtTimeRepeatAdpter(t int64) *jwt.NumericDate {
 	return jwt.NewNumericDate(time.Unix(t, 0))
 }
 
+// Auth
 type Auth struct {
 	mapclaims *mapClaims
 	cfg       config.IJwtConfig
 }
 
+// Admin Auth
 type adminAuth struct {
 	*Auth
 }
 
 type IAdmin interface {
+	SignToken() string
+}
+
+// Api key
+type ApiKey struct {
+	*Auth
+}
+
+type IApiKey interface {
+	SignToken() string
 }
 
 type mapClaims struct {
@@ -58,6 +70,8 @@ func NewAuthTokens(tokensType TokensType, cfg config.IJwtConfig, claims *users.U
 		return NewRefreshTokens(cfg, claims), nil
 	case AdminToken:
 		return NewAdminTokens(cfg), nil
+	case ApiKeyToken:
+		return NewApiKey(cfg), nil
 	default:
 		return nil, fmt.Errorf("unknows token type")
 	}
@@ -88,16 +102,29 @@ func ParseToken(cfg config.IJwtConfig, tokenString string) (*mapClaims, error) {
 	}
 }
 
-func (a *Auth) SignToken() string {
-	token := jwt.NewWithClaims(jwt.SigningMethodHS256, a.mapclaims)
-	ss, _ := token.SignedString(a.cfg.SercetKey())
-	return ss
-}
+func ParseApiKey(cfg config.IJwtConfig, tokenString string) (*mapClaims, error) {
+	token, err := jwt.ParseWithClaims(tokenString, &mapClaims{}, func(t *jwt.Token) (interface{}, error) {
+		if _, ok := t.Method.(*jwt.SigningMethodHMAC); !ok {
+			return nil, fmt.Errorf("signing method is invalid")
+		}
+		return cfg.ApiKey(), nil
+	})
+	if err != nil {
+		if errors.Is(err, jwt.ErrTokenMalformed) {
+			return nil, fmt.Errorf("token format is invalid")
+		} else if errors.Is(err, jwt.ErrTokenExpired) {
+			return nil, fmt.Errorf("token had expired")
+		} else {
+			return nil, fmt.Errorf("parse token failed: %v", err)
+		}
+	}
 
-func (a *adminAuth) SignToken() string {
-	token := jwt.NewWithClaims(jwt.SigningMethodHS256, a.mapclaims)
-	ss, _ := token.SignedString(a.cfg.AdminKey())
-	return ss
+	if claims, ok := token.Claims.(*mapClaims); ok {
+		return claims, nil
+	} else {
+		return nil, fmt.Errorf("claims type is invalid")
+	}
+
 }
 
 func ParseAdminToken(cfg config.IJwtConfig, tokenString string) (*mapClaims, error) {
@@ -123,6 +150,25 @@ func ParseAdminToken(cfg config.IJwtConfig, tokenString string) (*mapClaims, err
 		return nil, fmt.Errorf("claims type is invalid")
 	}
 
+}
+
+// Sign Token
+func (a *Auth) SignToken() string {
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, a.mapclaims)
+	ss, _ := token.SignedString(a.cfg.SercetKey())
+	return ss
+}
+
+func (a *adminAuth) SignToken() string {
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, a.mapclaims)
+	ss, _ := token.SignedString(a.cfg.AdminKey())
+	return ss
+}
+
+func (a *ApiKey) SignToken() string {
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, a.mapclaims)
+	ss, _ := token.SignedString(a.cfg.ApiKey())
+	return ss
 }
 
 func RepeatyToken(cfg config.IJwtConfig, claims *users.UserClaims, exp int64) string {
@@ -188,6 +234,25 @@ func NewAdminTokens(cfg config.IJwtConfig) IAuth {
 					Subject:   "admin-tokens",
 					Audience:  []string{"admin"},
 					ExpiresAt: JwtTimeDuration(300),
+					NotBefore: jwt.NewNumericDate(time.Now()),
+					IssuedAt:  jwt.NewNumericDate(time.Now()),
+				},
+			},
+		},
+	}
+}
+
+func NewApiKey(cfg config.IJwtConfig) IAuth {
+	return &ApiKey{
+		Auth: &Auth{
+			cfg: cfg,
+			mapclaims: &mapClaims{
+				Claims: nil,
+				RegisteredClaims: jwt.RegisteredClaims{
+					Issuer:    "gunpla-shop",
+					Subject:   "api-key",
+					Audience:  []string{"admin", "customer"},
+					ExpiresAt: jwt.NewNumericDate(time.Now().AddDate(1, 0, 0)),
 					NotBefore: jwt.NewNumericDate(time.Now()),
 					IssuedAt:  jwt.NewNumericDate(time.Now()),
 				},

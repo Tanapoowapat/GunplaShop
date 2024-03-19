@@ -20,6 +20,7 @@ const (
 	JwtAuthErr       middlewaresHandlersErrorCode = "middlewares-002"
 	ParamsCheckErr   middlewaresHandlersErrorCode = "middlewares-003"
 	authorizationErr middlewaresHandlersErrorCode = "middlewares-004"
+	ApiKeyErr        middlewaresHandlersErrorCode = "middlewares-005"
 )
 
 type IMiddlewaresHandlers interface {
@@ -29,6 +30,7 @@ type IMiddlewaresHandlers interface {
 	JwtAuth() fiber.Handler
 	ParamsCheck() fiber.Handler
 	Authorization(expectRoleId ...int) fiber.Handler
+	CheckApiKey() fiber.Handler
 }
 
 type middlewaresHandlers struct {
@@ -146,5 +148,19 @@ func (mh *middlewaresHandlers) Authorization(expectRoleId ...int) fiber.Handler 
 			string(authorizationErr),
 			"Unauthorized",
 		).Res()
+	}
+}
+
+func (mh *middlewaresHandlers) CheckApiKey() fiber.Handler {
+	return func(c *fiber.Ctx) error {
+		key := c.Get("X-Api-Key")
+		if _, err := gunplaauth.ParseApiKey(mh.config.Jwt(), key); err != nil {
+			return entities.NewResponse(c).Error(
+				fiber.ErrUnauthorized.Code,
+				string(ApiKeyErr),
+				"api key invalid or required",
+			).Res()
+		}
+		return c.Next()
 	}
 }

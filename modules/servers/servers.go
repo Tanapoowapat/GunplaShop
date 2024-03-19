@@ -46,6 +46,8 @@ func (s *server) Start() {
 	modules := NewModuleFactory(v1, s, middlewares)
 	modules.MonitorModule()
 	modules.UserMoudle()
+	modules.AppinfoModule()
+	modules.FileModule()
 	s.app.Use(middlewares.RouterCheck())
 
 	//Graceful shutdown
