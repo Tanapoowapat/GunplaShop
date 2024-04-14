@@ -57,3 +57,11 @@ func (r *Response) Res() error {
 	}
 	return r.Context.Status(r.StatusCode).JSON(r.Data)
 }
+
+type PaginateRes struct {
+	Data       any `json:"data"`
+	Page       int `json:"page"`
+	Limit      int `json:"limit"`
+	TotalPage  int `json:"total_page"`
+	TotalItems int `json:"total_item"`
+}
