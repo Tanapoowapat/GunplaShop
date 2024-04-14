@@ -158,7 +158,7 @@ func (mh *middlewaresHandlers) CheckApiKey() fiber.Handler {
 			return entities.NewResponse(c).Error(
 				fiber.ErrUnauthorized.Code,
 				string(ApiKeyErr),
-				"api key invalid or required",
+				err.Error(),
 			).Res()
 		}
 		return c.Next()

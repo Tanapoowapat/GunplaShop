@@ -29,7 +29,8 @@
 vendor/
 vendor
 /Godeps/
-/assets
+/assets/images
+/assets/logs
 
 # Customs
 *.env*
