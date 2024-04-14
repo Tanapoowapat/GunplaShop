@@ -35,7 +35,7 @@ func LoadConfig(path string) IConfig {
 				return time.Duration(int64(t) * int64(math.Pow10(9)))
 			}(),
 			writeTimeout: func() time.Duration {
-				t, err := strconv.Atoi(envMap["APP_WRITE_TIMEOUT"])
+				t, err := strconv.Atoi(envMap["APP_WRTIE_TIMEOUT"])
 				if err != nil {
 					log.Fatalf("Error  Fail to load writeTimeout ENV %v", err)
 				}
@@ -194,6 +194,7 @@ type IJwtConfig interface {
 	RefreshExpiresAt() int
 	SetAccessExpiresAt(int)
 	SetRefreshExpiresAt(int)
+	GetKeyInfo() string
 }
 
 type jwt struct {
@@ -215,3 +216,6 @@ func (j *jwt) AccessExpiresAt() int      { return j.accessExpiresAt }
 func (j *jwt) RefreshExpiresAt() int     { return j.refreshExpiresAt }
 func (j *jwt) SetAccessExpiresAt(a int)  { j.accessExpiresAt = a }
 func (j *jwt) SetRefreshExpiresAt(r int) { j.refreshExpiresAt = r }
+func (j *jwt) GetKeyInfo() string {
+	return fmt.Sprintf("adminKey=%s, apiKey=%s", j.adminKey, j.apiKey)
+}

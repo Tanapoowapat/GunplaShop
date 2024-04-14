@@ -19,7 +19,7 @@ type IFileUsecase interface {
 	UploadImageGCP(req []*file.FileReq) ([]*file.FileRes, error)
 	UploadImageLocal(req []*file.FileReq) ([]*file.FileRes, error)
 	DeleteImageGCP(req []*file.DeleteFileReq) error
-	DeleteImageStorage(req []*file.DeleteFileReq) error
+	DeleteImageLocal(req []*file.DeleteFileReq) error
 }
 
 type FileUsecase struct {
@@ -307,7 +307,7 @@ func (u *FileUsecase) deleteFromStorageFileWorkers(ctx context.Context, jobs <-c
 	}
 }
 
-func (u *FileUsecase) DeleteImageStorage(req []*file.DeleteFileReq) error {
+func (u *FileUsecase) DeleteImageLocal(req []*file.DeleteFileReq) error {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*60)
 	defer cancel()
 
