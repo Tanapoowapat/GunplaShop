@@ -1,6 +1,7 @@
 package ordersusecase
 
 import (
+	"fmt"
 	"math"
 
 	"github.com/Tanapoowapat/GunplaShop/modules/entities"
@@ -12,6 +13,8 @@ import (
 type IOrdersUsecase interface {
 	FindOnceOrders(orderId string) (*orders.Order, error)
 	FindOrders(req *orders.OrderFilter) *entities.PaginateRes
+	InsertOrder(req *orders.Order) (*orders.Order, error)
+	UpdateOrder(req *orders.Order) (*orders.Order, error)
 }
 
 type ordersUsecase struct {
@@ -39,4 +42,50 @@ func (usecase *ordersUsecase) FindOrders(req *orders.OrderFilter) *entities.Pagi
 		TotalItems: count,
 		TotalPage:  int(math.Ceil(float64(count) / float64(req.Limit))),
 	}
+}
+
+func (usecase *ordersUsecase) InsertOrder(req *orders.Order) (*orders.Order, error) {
+	//check if product exits
+	for i := range req.Product {
+		if req.Product[i].Product == nil {
+			return nil, fmt.Errorf("product is empty")
+		}
+
+		//Find Product
+		product, err := usecase.productsRepo.FindOneProducts(req.Product[i].Product.Id)
+		if err != nil {
+			return nil, err
+		}
+
+		//Set price
+		req.TotalPrice += req.Product[i].Product.Price * float64(req.Product[i].Qty)
+		req.Product[i].Product = product
+	}
+
+	orderId, err := usecase.ordersRepo.InsertOrder(req)
+	if err != nil {
+		return nil, err
+	}
+
+	order, err := usecase.FindOnceOrders(orderId)
+	if err != nil {
+		return nil, err
+	}
+
+	return order, nil
+
+}
+
+func (u *ordersUsecase) UpdateOrder(req *orders.Order) (*orders.Order, error) {
+
+	if err := u.ordersRepo.UpdateOrder(req); err != nil {
+		return nil, err
+	}
+
+	order, err := u.ordersRepo.FindOnceOrders(req.Id)
+	if err != nil {
+		return nil, err
+	}
+
+	return order, nil
 }
