@@ -10,6 +10,9 @@ import (
 	"github.com/Tanapoowapat/GunplaShop/modules/middlewares/middlewaresRepositories"
 	"github.com/Tanapoowapat/GunplaShop/modules/middlewares/middlewaresUsecase"
 	monitorhandlers "github.com/Tanapoowapat/GunplaShop/modules/monitor/monitorHandlers"
+	ordershandlers "github.com/Tanapoowapat/GunplaShop/modules/orders/ordersHandlers"
+	ordersrepositories "github.com/Tanapoowapat/GunplaShop/modules/orders/ordersRepositories"
+	ordersusecase "github.com/Tanapoowapat/GunplaShop/modules/orders/ordersUsecase"
 	productshandlers "github.com/Tanapoowapat/GunplaShop/modules/products/productsHandlers"
 	productsrepositories "github.com/Tanapoowapat/GunplaShop/modules/products/productsRepositories"
 	productsusecase "github.com/Tanapoowapat/GunplaShop/modules/products/productsUsercase"
@@ -25,6 +28,7 @@ type IModuleFactory interface {
 	AppinfoModule()
 	FileModule()
 	ProductsModule()
+	OrdersModule()
 }
 
 type moduleFactory struct {
@@ -112,4 +116,21 @@ func (m *moduleFactory) ProductsModule() {
 
 	router.Delete("/:product_id", m.mid.JwtAuth(), m.mid.Authorization(2), handler.DeleteProducts)
 
+}
+
+func (m *moduleFactory) OrdersModule() {
+	fileUsecase := filesusecase.NewFileUsecase(m.server.cfg)
+	productsRepo := productsrepositories.NewProductRepositories(m.server.db, m.server.cfg, fileUsecase)
+
+	repo := ordersrepositories.NewOrdersRepositories(m.server.db)
+	usecase := ordersusecase.NewOrdersUsecase(repo, productsRepo)
+	handler := ordershandlers.NewOrdersHandlers(usecase, m.server.cfg)
+
+	router := m.router.Group("/orders")
+
+	router.Get("/", m.mid.JwtAuth(), m.mid.Authorization(2), handler.FindOrder)
+	router.Get("/:user_id/:order_id", m.mid.JwtAuth(), m.mid.ParamsCheck(), handler.FindOnceOrders)
+
+	router.Post("/", m.mid.JwtAuth(), handler.InsertOrder)
+	router.Patch("/:user_id/:order_id", m.mid.JwtAuth(), m.mid.ParamsCheck(), handler.UpdateOrder)
 }

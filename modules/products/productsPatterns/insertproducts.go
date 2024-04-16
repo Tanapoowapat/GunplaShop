@@ -47,6 +47,7 @@ func (b *insertProductBuilder) initTransaction() error {
 	b.tx = tx
 	return nil
 }
+
 func (b *insertProductBuilder) insertProduct() error {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*15)
 	defer cancel()
